@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+*.sqlite3
+instance/
+
+node_modules/
+frontend/dist/
+static/assets/
+static/index.html
+templates/index.html
+
+.DS_Store
+.vscode/
+*.log

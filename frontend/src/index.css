@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #080812;
+  color: #F5F5F0;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Feed scroll snapping */
+.feed-container {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.feed-container::-webkit-scrollbar { display: none; }
+
+.feed-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: 100svh;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Smooth page transitions */
+.page-enter {
+  animation: fadeSlideUp 0.25s ease forwards;
+}
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Heart like animation */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.4); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.heart-pop { animation: heartPop 0.35s ease; }
+
+/* Save bounce */
+@keyframes saveBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  70%  { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+.save-bounce { animation: saveBounce 0.4s ease; }
+
+/* Gradient overlays */
+.img-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.0) 0%,
+    rgba(0,0,0,0.0) 40%,
+    rgba(0,0,0,0.7) 75%,
+    rgba(0,0,0,0.92) 100%
+  );
+}
+
+/* Pill badge */
+.pill {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+}
+
+/* Bottom nav blur */
+.bottom-nav {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(8, 8, 18, 0.85);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Modal slide-up */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+.modal-sheet {
+  width: 100%;
+  background: #181830;
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px calc(24px + var(--safe-bottom));
+  animation: slideUp 0.28s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Map container */
+.mapboxgl-map { border-radius: 16px; }
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right { display: none; }
+
+/* Input styling */
+.input-dark {
+  @apply w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-text-1
+         placeholder-text-3 text-sm outline-none focus:border-gold/60 transition-colors;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply w-full bg-gold text-bg font-bold text-sm py-4 rounded-2xl
+         active:scale-95 transition-transform hover:bg-gold/90;
+}
+.btn-ghost {
+  @apply bg-white/8 text-text-1 font-medium text-sm py-3 px-5 rounded-xl
+         active:scale-95 transition-transform hover:bg-white/12;
+}
+
+/* Category pills */
+.cat-pill {
+  @apply px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap
+         transition-all active:scale-95;
+}
+.cat-pill-active  { @apply bg-gold text-bg; }
+.cat-pill-inactive { @apply bg-white/8 text-text-2 hover:bg-white/12; }
+
+/* Scrollbar hide helper */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { scrollbar-width: none; }
