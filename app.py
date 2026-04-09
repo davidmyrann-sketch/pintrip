@@ -63,12 +63,19 @@ def require_gdpr(f):
         return f(*args, **kwargs)
     return wrapper
 
-# ── Init DB ──────────────────────────────────────────────────────────────────
-with app.app_context():
-    try:
-        db.create_all()
-    except Exception as e:
-        print(f"[WARN] db.create_all() failed: {e}")
+# ── Init DB (lazy — runs on first request, not at import time) ────────────────
+_db_ready = False
+
+@app.before_request
+def ensure_db():
+    global _db_ready
+    if not _db_ready:
+        try:
+            db.create_all()
+            _db_ready = True
+            print("[DB] Tables created OK")
+        except Exception as e:
+            print(f"[DB] create_all error: {e}")
 
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.route('/health')
