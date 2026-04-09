@@ -65,7 +65,15 @@ def require_gdpr(f):
 
 # ── Init DB ──────────────────────────────────────────────────────────────────
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"[WARN] db.create_all() failed: {e}")
+
+# ── Health ────────────────────────────────────────────────────────────────────
+@app.route('/health')
+def health():
+    return jsonify(ok=True, status='healthy')
 
 # ════════════════════════════════════════════════════════════════════════════
 # AUTH
