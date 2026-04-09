@@ -26,6 +26,4 @@ RUN mkdir -p /app/static /app/templates
 # Build frontend AFTER copy — output goes to /app/static + /app/templates
 RUN cd frontend && npm run build
 
-EXPOSE 8080
-
-CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120
+CMD ["sh", "-c", "exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"]
