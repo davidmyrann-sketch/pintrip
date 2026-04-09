@@ -9,19 +9,22 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Python dependencies
+# Python deps (cached layer)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Frontend build
+# npm install (cached layer — only re-runs if package.json changes)
 COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm install
 
-COPY frontend/ ./frontend/
-RUN cd frontend && npm run build
-
-# Copy rest of app
+# Copy ALL source files
 COPY . .
+
+# Create output dirs if not present
+RUN mkdir -p /app/static /app/templates
+
+# Build frontend AFTER copy — output goes to /app/static + /app/templates
+RUN cd frontend && npm run build
 
 EXPOSE 8080
 
