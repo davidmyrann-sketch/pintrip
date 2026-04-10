@@ -82,6 +82,15 @@ def ensure_db():
 def health():
     return jsonify(ok=True, status='healthy')
 
+# ── Global error handler (shows real error in JSON) ───────────────────────────
+import traceback
+
+@app.errorhandler(500)
+def internal_error(e):
+    tb = traceback.format_exc()
+    print(f"[500] {tb}", flush=True)
+    return jsonify(error=str(e), traceback=tb), 500
+
 # ════════════════════════════════════════════════════════════════════════════
 # AUTH
 # ════════════════════════════════════════════════════════════════════════════
