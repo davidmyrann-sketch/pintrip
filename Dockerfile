@@ -26,4 +26,4 @@ RUN mkdir -p /app/static /app/templates
 # Build frontend AFTER copy — output goes to /app/static + /app/templates
 RUN cd frontend && npm run build
 
-CMD ["gunicorn", "app:app", "--config", "gunicorn.conf.py"]
+CMD ["python", "start.py"]
