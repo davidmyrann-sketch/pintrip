@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 from flask_cors import CORS
 from models import db, User, Post, Trip, TripLocation, Like, Save, Comment
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(__name__, static_folder='static', static_url_path='', template_folder='templates')
 
 # ── Config ──────────────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///pintrip.db')
