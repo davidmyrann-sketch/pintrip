@@ -23,7 +23,6 @@ export default function CreatePostModal({ onClose, onCreated }) {
   const [priceLevel, setPriceLevel]   = useState('')
   const [submitting, setSubmitting]   = useState(false)
   const [error, setError]             = useState('')
-  const [uploadingIdx, setUploadingIdx] = useState(null)
   const [mapboxToken, setMapboxToken]   = useState(import.meta.env.VITE_MAPBOX_TOKEN || '')
 
   const fileInputRef = useRef(null)
@@ -35,31 +34,44 @@ export default function CreatePostModal({ onClose, onCreated }) {
     }
   }, [])
 
+  const compressImage = (file) => new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1200
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+          else                { width  = Math.round(width  * MAX / height); height = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+
   const handleFiles = useCallback(async (files) => {
-    const allowed = Array.from(files).filter(f =>
-      f.type.startsWith('image/') || f.type.startsWith('video/')
-    )
+    const allowed = Array.from(files).filter(f => f.type.startsWith('image/'))
     if (!allowed.length) return
 
     for (const file of allowed) {
       const preview = URL.createObjectURL(file)
       const tempId  = Math.random().toString(36).slice(2)
       setMediaItems(prev => [...prev, { tempId, preview, url: null, uploading: true }])
-      setUploadingIdx(tempId)
 
       try {
-        const form = new FormData()
-        form.append('file', file)
-        const { data } = await api.post('/api/upload', form, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        const base64 = await compressImage(file)
         setMediaItems(prev =>
-          prev.map(m => m.tempId === tempId ? { ...m, url: data.url, uploading: false } : m)
+          prev.map(m => m.tempId === tempId ? { ...m, url: base64, uploading: false } : m)
         )
       } catch {
         setMediaItems(prev => prev.filter(m => m.tempId !== tempId))
       }
-      setUploadingIdx(null)
     }
   }, [])
 
