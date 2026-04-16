@@ -57,9 +57,6 @@ export default function PostCard({ post: initialPost, style }) {
     try {
       const { data } = await api.post(`/api/posts/${post.id}/save`, tripId ? { trip_id: tripId } : {})
       setPost(p => ({ ...p, saved: data.saved, save_count: data.save_count }))
-      if (data.suggest_trip) {
-        setShowSave(true)
-      }
     } catch {}
     setTimeout(() => setSaveAnim(false), 450)
   }
@@ -120,11 +117,7 @@ export default function PostCard({ post: initialPost, style }) {
         <button
           onClick={() => {
             if (!user) { navigate('/auth'); return }
-            if (!post.saved) {
-              handleSave(null)
-            } else {
-              setShowSave(true)
-            }
+            setShowSave(true)
           }}
           className="flex flex-col items-center gap-1"
         >
