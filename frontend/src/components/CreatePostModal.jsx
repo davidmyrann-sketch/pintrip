@@ -73,23 +73,16 @@ export default function CreatePostModal({ onClose, onCreated }) {
   }
 
   const geocode = async (query) => {
-    if (!mapboxToken || query.length < 2) { setGeocodeResults([]); return }
+    if (query.length < 2) { setGeocodeResults([]); return }
     setGeocoding(true)
     try {
-      let proximity = ''
-      try {
-        const pos = await new Promise((res, rej) =>
-          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 2000 })
-        )
-        proximity = `&proximity=${pos.coords.longitude},${pos.coords.latitude}`
-      } catch {}
-
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-        `?access_token=${mapboxToken}&types=poi,place,locality,neighborhood,address&limit=8${proximity}`
+        `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1&extratags=1`,
+        { headers: { 'Accept-Language': 'en' } }
       )
       const data = await res.json()
-      setGeocodeResults(data.features || [])
+      setGeocodeResults(data)
     } catch {}
     setGeocoding(false)
   }
@@ -102,15 +95,12 @@ export default function CreatePostModal({ onClose, onCreated }) {
   }
 
   const selectPlace = (feature) => {
-    const [lng, lat] = feature.center
-    setLat(lat)
-    setLng(lng)
-    setLocationName(feature.text || feature.place_name)
-    const ctx = feature.context || []
-    const placeCtx = ctx.find(c => c.id.startsWith('place.'))
-    const countryCtx = ctx.find(c => c.id.startsWith('country.'))
-    setCity(placeCtx?.text || '')
-    setCountry(countryCtx?.text || '')
+    setLat(parseFloat(feature.lat))
+    setLng(parseFloat(feature.lon))
+    setLocationName(feature.name || feature.display_name.split(',')[0])
+    const addr = feature.address || {}
+    setCity(addr.city || addr.town || addr.village || addr.municipality || '')
+    setCountry(addr.country || '')
     setGeocodeResults([])
   }
 
@@ -241,20 +231,22 @@ export default function CreatePostModal({ onClose, onCreated }) {
               {geocodeResults.length > 0 && (
                 <div className="absolute z-10 left-0 right-0 mt-1 bg-[#1a1a2e] border border-white/10 rounded-xl overflow-hidden shadow-xl">
                   {geocodeResults.map(f => {
-                    const category = f.properties?.category || f.place_type?.[0] || ''
+                    const name    = f.name || f.display_name.split(',')[0]
+                    const subtext = f.display_name
+                    const type    = (f.type || f.class || '').replace(/_/g, ' ')
                     return (
                       <button
-                        key={f.id}
+                        key={f.place_id}
                         onClick={() => selectPlace(f)}
                         className="w-full text-left px-4 py-3 hover:bg-white/6 border-b border-white/6 last:border-0 transition-colors"
                       >
                         <div className="flex items-center gap-2">
-                          <p className="text-text-1 text-sm font-medium flex-1">{f.text}</p>
-                          {category && (
-                            <span className="text-text-3 text-[10px] capitalize shrink-0">{category.split(',')[0]}</span>
+                          <p className="text-text-1 text-sm font-medium flex-1">{name}</p>
+                          {type && (
+                            <span className="text-text-3 text-[10px] capitalize shrink-0">{type}</span>
                           )}
                         </div>
-                        <p className="text-text-3 text-xs truncate mt-0.5">{f.place_name}</p>
+                        <p className="text-text-3 text-xs truncate mt-0.5">{subtext}</p>
                       </button>
                     )
                   })}
