@@ -1,13 +1,23 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
+const BAKED_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 export default function TripMap({ locations }) {
   const container = useRef(null)
   const mapRef    = useRef(null)
+  const [token, setToken] = useState(BAKED_TOKEN)
 
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !window.mapboxgl) return
+    if (!BAKED_TOKEN) {
+      fetch('/api/config')
+        .then(r => r.json())
+        .then(d => { if (d.mapbox_token) setToken(d.mapbox_token) })
+        .catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!token || !window.mapboxgl) return
     if (mapRef.current) return
 
     const points = locations
@@ -16,7 +26,7 @@ export default function TripMap({ locations }) {
 
     if (!points.length) return
 
-    window.mapboxgl.accessToken = MAPBOX_TOKEN
+    window.mapboxgl.accessToken = token
 
     const bounds = new window.mapboxgl.LngLatBounds()
     points.forEach(p => bounds.extend([p.lng, p.lat]))
@@ -90,9 +100,9 @@ export default function TripMap({ locations }) {
       map.remove()
       mapRef.current = null
     }
-  }, [locations])
+  }, [locations, token])
 
-  if (!MAPBOX_TOKEN) {
+  if (!token) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface rounded-2xl text-center px-8">
         <div className="text-4xl">🗺️</div>
