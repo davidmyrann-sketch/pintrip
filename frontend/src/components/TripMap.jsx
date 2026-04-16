@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import mapboxgl from 'mapbox-gl'
 
 const BAKED_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
@@ -17,7 +18,7 @@ export default function TripMap({ locations }) {
   }, [])
 
   useEffect(() => {
-    if (!token || !window.mapboxgl) return
+    if (!token) return
     if (mapRef.current) return
 
     const points = locations
@@ -26,12 +27,12 @@ export default function TripMap({ locations }) {
 
     if (!points.length) return
 
-    window.mapboxgl.accessToken = token
+    mapboxgl.accessToken = token
 
-    const bounds = new window.mapboxgl.LngLatBounds()
+    const bounds = new mapboxgl.LngLatBounds()
     points.forEach(p => bounds.extend([p.lng, p.lat]))
 
-    const map = new window.mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: container.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       bounds,
@@ -41,78 +42,40 @@ export default function TripMap({ locations }) {
 
     map.on('load', () => {
       map.resize()
-      // Route line
+
       if (points.length > 1) {
         map.addSource('route', {
           type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: points.map(p => [p.lng, p.lat]),
-            },
-          },
+          data: { type: 'Feature', geometry: { type: 'LineString', coordinates: points.map(p => [p.lng, p.lat]) } },
         })
         map.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          paint: {
-            'line-color': '#F5A623',
-            'line-width': 2,
-            'line-dasharray': [2, 2],
-            'line-opacity': 0.7,
-          },
+          id: 'route', type: 'line', source: 'route',
+          paint: { 'line-color': '#F5A623', 'line-width': 2, 'line-dasharray': [2, 2], 'line-opacity': 0.7 },
         })
       }
 
-      // Numbered markers
-      points.forEach((p) => {
+      points.forEach(p => {
         const el = document.createElement('div')
-        el.style.cssText = `
-          width:32px;height:32px;border-radius:50%;
-          background:#F5A623;color:#080812;
-          font-size:13px;font-weight:800;
-          display:flex;align-items:center;justify-content:center;
-          border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5);
-          cursor:pointer;
-        `
+        el.style.cssText = `width:32px;height:32px;border-radius:50%;background:#F5A623;color:#080812;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5);cursor:pointer;`
         el.textContent = p.idx
 
-        const popup = new window.mapboxgl.Popup({ offset: 20, closeButton: false })
-          .setHTML(`
-            <div style="display:flex;gap:10px;align-items:center;min-width:180px">
-              <img src="${p.img}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0" />
-              <div>
-                <p style="font-weight:700;font-size:13px;color:#F5F5F0;margin:0 0 2px">${p.label}</p>
-                <p style="font-size:11px;color:#A0A0B0;margin:0">Stop ${p.idx}</p>
-              </div>
-            </div>
-          `)
+        const popup = new mapboxgl.Popup({ offset: 20, closeButton: false })
+          .setHTML(`<div style="display:flex;gap:10px;align-items:center;min-width:180px"><img src="${p.img}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0" /><div><p style="font-weight:700;font-size:13px;color:#F5F5F0;margin:0 0 2px">${p.label}</p><p style="font-size:11px;color:#A0A0B0;margin:0">Stop ${p.idx}</p></div></div>`)
 
-        new window.mapboxgl.Marker({ element: el })
-          .setLngLat([p.lng, p.lat])
-          .setPopup(popup)
-          .addTo(map)
+        new mapboxgl.Marker({ element: el }).setLngLat([p.lng, p.lat]).setPopup(popup).addTo(map)
       })
     })
 
-    return () => {
-      map.remove()
-      mapRef.current = null
-    }
+    return () => { map.remove(); mapRef.current = null }
   }, [locations, token])
 
-  if (!token) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface rounded-2xl text-center px-8">
-        <div className="text-4xl">🗺️</div>
-        <p className="text-text-1 font-semibold">Map not configured</p>
-        <p className="text-text-3 text-sm">Add your Mapbox token to <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs">.env</code></p>
-        <p className="text-text-3 text-xs">VITE_MAPBOX_TOKEN=your_token</p>
-      </div>
-    )
-  }
+  if (!token) return (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface rounded-2xl text-center px-8">
+      <div className="text-4xl">🗺️</div>
+      <p className="text-text-1 font-semibold">Map not configured</p>
+      <p className="text-text-3 text-xs">Set VITE_MAPBOX_TOKEN in Railway variables</p>
+    </div>
+  )
 
   return <div ref={container} className="w-full h-full rounded-2xl overflow-hidden" />
 }

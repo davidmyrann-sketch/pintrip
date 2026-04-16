@@ -346,6 +346,20 @@ def toggle_like(pid):
         return jsonify(liked=False, like_count=p.likes.count())
 
 
+def _add_to_trip(uid, pid, trip_id, post):
+    """Add post as TripLocation if not already there; set cover image if first stop."""
+    t = Trip.query.filter_by(id=trip_id, user_id=uid).first()
+    if not t:
+        return
+    if TripLocation.query.filter_by(trip_id=trip_id, post_id=pid).first():
+        return
+    max_order = db.session.query(db.func.max(TripLocation.order_index)).filter_by(trip_id=trip_id).scalar() or -1
+    db.session.add(TripLocation(trip_id=trip_id, post_id=pid, order_index=max_order + 1))
+    if not t.cover_image_url:
+        t.cover_image_url = post.image_url
+    t.updated_at = datetime.now(timezone.utc)
+
+
 @app.route('/api/posts/<int:pid>/save', methods=['POST', 'DELETE'])
 @jwt_required()
 def toggle_save(pid):
@@ -358,14 +372,15 @@ def toggle_save(pid):
         if existing:
             if trip_id:
                 existing.trip_id = trip_id
+                _add_to_trip(uid, pid, trip_id, p)
                 db.session.commit()
             return jsonify(saved=True, save_count=p.saves.count())
         s = Save(user_id=uid, post_id=pid, trip_id=trip_id)
         db.session.add(s)
+        if trip_id:
+            _add_to_trip(uid, pid, trip_id, p)
         db.session.commit()
-        # Suggest trip creation if ≥3 unsorted saves
-        unsorted = Save.query.filter_by(user_id=uid, trip_id=None).count()
-        return jsonify(saved=True, save_count=p.saves.count(), suggest_trip=(unsorted >= 3))
+        return jsonify(saved=True, save_count=p.saves.count())
     else:
         if existing:
             db.session.delete(existing)
