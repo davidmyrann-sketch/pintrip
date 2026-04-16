@@ -13,11 +13,20 @@ export default function TripsPage() {
   const [newName, setNewName] = useState('')
   const [saving,  setSaving]  = useState(false)
 
-  useEffect(() => {
+  const loadTrips = () => {
     if (!user) return
     api.get('/api/trips')
       .then(r => setTrips(r.data.trips))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { loadTrips() }, [user])
+
+  // Re-fetch when page gains focus (e.g. after returning from TripDetail)
+  useEffect(() => {
+    const onFocus = () => { if (user) loadTrips() }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [user])
 
   const create = async () => {
@@ -124,24 +133,26 @@ export default function TripsPage() {
                     }
                   </div>
                 </div>
-                <div className="p-3 pr-8">
+                <div className="p-3">
                   <p className="text-text-1 font-semibold text-sm truncate">{t.name}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <MapPin size={10} className="text-text-3" />
-                    <span className="text-text-3 text-xs">{t.location_count} stops</span>
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center gap-1">
+                      <MapPin size={10} className="text-text-3" />
+                      <span className="text-text-3 text-xs">{t.location_count} stops</span>
+                    </div>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        if (!window.confirm(`Delete "${t.name}"?`)) return
+                        await api.delete(`/api/trips/${t.id}`)
+                        setTrips(prev => prev.filter(x => x.id !== t.id))
+                      }}
+                      className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center active:bg-coral/20 transition-colors"
+                    >
+                      <Trash2 size={13} className="text-text-3" />
+                    </button>
                   </div>
                 </div>
-              </button>
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  if (!window.confirm(`Delete "${t.name}"?`)) return
-                  await api.delete(`/api/trips/${t.id}`)
-                  setTrips(prev => prev.filter(x => x.id !== t.id))
-                }}
-                className="absolute bottom-3 right-2.5 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center active:bg-coral/20 transition-colors"
-              >
-                <Trash2 size={13} className="text-text-3" />
               </button>
             </div>
           ))}

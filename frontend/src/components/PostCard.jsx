@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Heart, Bookmark, MessageCircle, MapPin, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -199,12 +200,13 @@ export default function PostCard({ post: initialPost, style }) {
         </div>
       </div>
 
-      {showSave && (
+      {showSave && createPortal(
         <SaveModal
           post={post}
           onClose={() => setShowSave(false)}
           onSaved={(tid) => { handleSave(tid); setShowSave(false) }}
-        />
+        />,
+        document.body
       )}
     </div>
   )

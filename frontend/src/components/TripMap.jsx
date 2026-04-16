@@ -40,6 +40,7 @@ export default function TripMap({ locations }) {
     mapRef.current = map
 
     map.on('load', () => {
+      map.resize()
       // Route line
       if (points.length > 1) {
         map.addSource('route', {
