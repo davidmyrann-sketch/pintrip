@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Map, List, MapPin, GripVertical, Trash2, Pencil, Check } from 'lucide-react'
+import { ArrowLeft, Map, List, MapPin, Trash2, Pencil, Check, Plus, X } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 import TripMap from '../components/TripMap'
 
 export default function TripDetail() {
   const { id }    = useParams()
   const navigate  = useNavigate()
+  const { user }  = useAuth()
   const [trip,    setTrip]    = useState(null)
-  const [view,    setView]    = useState('list')  // 'list' | 'map'
+  const [view,    setView]    = useState('list')
   const [editing, setEditing] = useState(false)
   const [name,    setName]    = useState('')
   const [loading, setLoading] = useState(true)
+  const [showPicker, setShowPicker] = useState(false)
+  const [myPosts,    setMyPosts]    = useState([])
+  const [adding,     setAdding]     = useState(null)
 
   useEffect(() => {
     api.get(`/api/trips/${id}`)
@@ -32,6 +37,26 @@ export default function TripDetail() {
     setTrip(t => ({ ...t, locations: t.locations.filter(l => l.id !== locId) }))
   }
 
+  const openPicker = async () => {
+    if (!user) return
+    if (!myPosts.length) {
+      const { data } = await api.get(`/api/profile/${user.username}`)
+      setMyPosts(data.posts || [])
+    }
+    setShowPicker(true)
+  }
+
+  const addPost = async (post) => {
+    const alreadyAdded = trip.locations.some(l => l.post?.id === post.id)
+    if (alreadyAdded) return
+    setAdding(post.id)
+    try {
+      const { data } = await api.post(`/api/trips/${id}/locations`, { post_id: post.id })
+      setTrip(t => ({ ...t, locations: [...t.locations, data.location] }))
+    } catch {}
+    setAdding(null)
+  }
+
   if (loading) return (
     <div className="h-full flex items-center justify-center bg-bg">
       <div className="w-8 h-8 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
@@ -44,6 +69,7 @@ export default function TripDetail() {
   const hasMap    = locations.some(l => l.post?.lat && l.post?.lng)
 
   return (
+    <>
     <div className="h-full flex flex-col bg-bg page-enter">
       {/* Header */}
       <div className="flex-shrink-0 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 border-b border-white/6">
@@ -115,9 +141,9 @@ export default function TripDetail() {
               <div className="flex flex-col items-center gap-3 py-16 text-center">
                 <span className="text-4xl">📍</span>
                 <p className="text-text-1 font-semibold">No stops yet</p>
-                <p className="text-text-3 text-sm">Save places from the feed and add them here</p>
-                <button onClick={() => navigate('/')} className="mt-2 bg-gold text-bg text-sm font-bold px-6 py-3 rounded-full active:scale-95 transition-transform">
-                  Explore feed
+                <p className="text-text-3 text-sm">Add your posts as stops on this trip</p>
+                <button onClick={openPicker} className="mt-2 bg-gold text-bg text-sm font-bold px-6 py-3 rounded-full active:scale-95 transition-transform flex items-center gap-2">
+                  <Plus size={15} strokeWidth={3} /> Add post
                 </button>
               </div>
             ) : (
@@ -151,6 +177,12 @@ export default function TripDetail() {
                     </button>
                   </div>
                 ))}
+                <button
+                  onClick={openPicker}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-white/15 text-text-3 text-sm hover:border-gold/40 hover:text-gold transition-colors"
+                >
+                  <Plus size={15} /> Add another stop
+                </button>
               </div>
             )}
           </div>
@@ -169,5 +201,56 @@ export default function TripDetail() {
         )}
       </div>
     </div>
+
+    {/* Post picker modal */}
+    {showPicker && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
+        <div className="w-full sm:max-w-lg bg-[#13131f] rounded-t-3xl" style={{ maxHeight: '80dvh' }}>
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/8">
+            <p className="text-text-1 font-bold">Add a stop</p>
+            <button onClick={() => setShowPicker(false)} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center">
+              <X size={15} className="text-text-2" />
+            </button>
+          </div>
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(80dvh - 70px)' }}>
+            {myPosts.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-text-3 text-sm">No posts yet — create a post first</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1 p-3">
+                {myPosts.map(p => {
+                  const added = trip.locations.some(l => l.post?.id === p.id)
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => { if (!added) addPost(p) }}
+                      disabled={added || adding === p.id}
+                      className="relative aspect-square rounded-xl overflow-hidden bg-surface"
+                    >
+                      <img src={p.image_url} className="w-full h-full object-cover" alt="" />
+                      {added && (
+                        <div className="absolute inset-0 bg-gold/40 flex items-center justify-center">
+                          <Check size={22} className="text-white" strokeWidth={3} />
+                        </div>
+                      )}
+                      {adding === p.id && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 px-1.5 pb-1.5 bg-gradient-to-t from-black/70">
+                        <p className="text-white text-[10px] font-semibold truncate">{p.location_name}</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

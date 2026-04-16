@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Map, MapPin, Lock, Globe } from 'lucide-react'
+import { Plus, Map, MapPin, Lock, Globe, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 
@@ -103,35 +103,47 @@ export default function TripsPage() {
         {/* Trip cards */}
         <div className="grid grid-cols-2 gap-3">
           {trips.map(t => (
-            <button
-              key={t.id}
-              onClick={() => navigate(`/trips/${t.id}`)}
-              className="bg-card rounded-2xl overflow-hidden active:scale-95 transition-transform text-left"
-            >
-              <div className="relative w-full aspect-square">
-                {t.cover_image_url
-                  ? <img src={t.cover_image_url} className="w-full h-full object-cover" alt="" />
-                  : (
-                    <div className="w-full h-full bg-surface flex items-center justify-center">
-                      <Map size={32} className="text-text-3" />
-                    </div>
-                  )
-                }
-                <div className="absolute top-2 right-2">
-                  {t.is_public
-                    ? <Globe size={12} className="text-white/60" />
-                    : <Lock size={12} className="text-white/60" />
+            <div key={t.id} className="relative bg-card rounded-2xl overflow-hidden">
+              <button
+                onClick={() => navigate(`/trips/${t.id}`)}
+                className="w-full text-left active:scale-95 transition-transform"
+              >
+                <div className="relative w-full aspect-square">
+                  {t.cover_image_url
+                    ? <img src={t.cover_image_url} className="w-full h-full object-cover" alt="" />
+                    : (
+                      <div className="w-full h-full bg-surface flex items-center justify-center">
+                        <Map size={32} className="text-text-3" />
+                      </div>
+                    )
                   }
+                  <div className="absolute top-2 right-2">
+                    {t.is_public
+                      ? <Globe size={12} className="text-white/60" />
+                      : <Lock size={12} className="text-white/60" />
+                    }
+                  </div>
                 </div>
-              </div>
-              <div className="p-3">
-                <p className="text-text-1 font-semibold text-sm truncate">{t.name}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <MapPin size={10} className="text-text-3" />
-                  <span className="text-text-3 text-xs">{t.location_count} stops</span>
+                <div className="p-3 pr-8">
+                  <p className="text-text-1 font-semibold text-sm truncate">{t.name}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <MapPin size={10} className="text-text-3" />
+                    <span className="text-text-3 text-xs">{t.location_count} stops</span>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (!window.confirm(`Delete "${t.name}"?`)) return
+                  await api.delete(`/api/trips/${t.id}`)
+                  setTrips(prev => prev.filter(x => x.id !== t.id))
+                }}
+                className="absolute bottom-3 right-2.5 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center active:bg-coral/20 transition-colors"
+              >
+                <Trash2 size={13} className="text-text-3" />
+              </button>
+            </div>
           ))}
         </div>
       </div>
