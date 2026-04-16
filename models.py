@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -62,6 +63,11 @@ class Post(db.Model):
     price_level   = db.Column(db.Integer)        # 1–4
     rating        = db.Column(db.Float)          # 1.0–5.0
     affiliate_url = db.Column(db.Text)
+    title         = db.Column(db.String(300))
+    weather       = db.Column(db.String(100))
+    duration_hours = db.Column(db.Float)
+    cost_nok      = db.Column(db.Integer)
+    media_urls    = db.Column(db.Text)   # JSON array of additional media URLs
     created_at    = db.Column(db.DateTime, default=now_utc)
 
     likes    = db.relationship('Like',    backref='post', lazy='dynamic', cascade='all, delete-orphan')
@@ -93,6 +99,11 @@ class Post(db.Model):
             'comment_count': self.comments.count(),
             'liked': liked,
             'saved': saved,
+            'title': self.title,
+            'weather': self.weather,
+            'duration_hours': self.duration_hours,
+            'cost_nok': self.cost_nok,
+            'media_urls': json.loads(self.media_urls) if self.media_urls else [],
             'created_at': self.created_at.isoformat(),
         }
 

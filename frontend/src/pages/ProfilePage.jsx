@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Settings, LogOut, Download, Trash2, Grid3X3 } from 'lucide-react'
+import { Settings, LogOut, Download, Trash2, Grid3X3, Plus } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
+import CreatePostModal from '../components/CreatePostModal'
 
 export default function ProfilePage() {
   const { user, logout }  = useAuth()
@@ -11,7 +12,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null)
   const [posts,   setPosts]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [showSettings, setSettings] = useState(false)
+  const [showSettings, setSettings]   = useState(false)
+  const [showCreate,  setShowCreate]  = useState(false)
 
   const targetUsername = username || user?.username
 
@@ -60,6 +62,7 @@ export default function ProfilePage() {
   const isOwn = user?.username === targetUsername
 
   return (
+    <>
     <div className="h-full overflow-y-auto scrollbar-hide bg-bg page-enter">
       <div className="px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
         {/* Header */}
@@ -131,10 +134,21 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Post grid */}
-        <div className="flex items-center gap-2 mb-3">
-          <Grid3X3 size={14} className="text-text-3" />
-          <p className="text-text-3 text-xs font-semibold uppercase tracking-wider">Posts</p>
+        {/* Post grid header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Grid3X3 size={14} className="text-text-3" />
+            <p className="text-text-3 text-xs font-semibold uppercase tracking-wider">Posts</p>
+          </div>
+          {isOwn && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold text-bg text-xs font-bold"
+            >
+              <Plus size={13} />
+              New post
+            </button>
+          )}
         </div>
         {posts.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
@@ -152,5 +166,13 @@ export default function ProfilePage() {
         )}
       </div>
     </div>
+
+    {showCreate && (
+      <CreatePostModal
+        onClose={() => setShowCreate(false)}
+        onCreated={(newPost) => setPosts(prev => [newPost, ...prev])}
+      />
+    )}
+    </>
   )
 }

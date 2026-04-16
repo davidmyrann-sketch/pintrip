@@ -199,30 +199,65 @@ def feed():
 # POSTS
 # ════════════════════════════════════════════════════════════════════════════
 
+@app.route('/api/upload', methods=['POST'])
+@jwt_required()
+def upload_media():
+    """Accept a media file, save to static/uploads/, return URL."""
+    import uuid, os
+    if 'file' not in request.files:
+        return jsonify(error='No file provided'), 400
+    f = request.files['file']
+    if not f.filename:
+        return jsonify(error='Empty filename'), 400
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.mov'}:
+        return jsonify(error='Unsupported file type'), 400
+    upload_dir = os.path.join(app.static_folder, 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f'{uuid.uuid4().hex}{ext}'
+    f.save(os.path.join(upload_dir, filename))
+    url = f'/static/uploads/{filename}'
+    return jsonify(url=url), 201
+
+
 @app.route('/api/posts', methods=['POST'])
 @require_gdpr
 def create_post():
+    import json as _json
     uid = current_uid()
     d   = request.get_json() or {}
-    if not d.get('image_url'):
-        return jsonify(error='image_url required'), 400
+
+    media_urls = d.get('media_urls', [])  # list of URLs
+    image_url  = d.get('image_url') or (media_urls[0] if media_urls else None)
+
+    if not image_url:
+        return jsonify(error='At least one media item required'), 400
     if not d.get('location_name'):
         return jsonify(error='location_name required'), 400
+    if d.get('lat') is None or d.get('lng') is None:
+        return jsonify(error='Coordinates (lat/lng) required'), 400
+
+    extra_media = media_urls[1:] if len(media_urls) > 1 else []
 
     p = Post(
         user_id=uid,
-        image_url=d['image_url'],
+        image_url=image_url,
         video_url=d.get('video_url'),
         caption=d.get('caption'),
         location_name=d['location_name'],
         city=d.get('city'),
         country=d.get('country'),
-        lat=d.get('lat'),
-        lng=d.get('lng'),
+        lat=d['lat'],
+        lng=d['lng'],
         category=d.get('category', 'city'),
         price_level=d.get('price_level'),
         rating=d.get('rating'),
         affiliate_url=d.get('affiliate_url'),
+        title=d.get('title'),
+        weather=d.get('weather'),
+        duration_hours=d.get('duration_hours'),
+        cost_nok=d.get('cost_nok'),
+        media_urls=_json.dumps(extra_media) if extra_media else None,
     )
     db.session.add(p)
     db.session.commit()

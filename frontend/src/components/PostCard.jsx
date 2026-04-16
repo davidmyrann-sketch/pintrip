@@ -167,10 +167,25 @@ export default function PostCard({ post: initialPost, style }) {
         )}
 
         {/* Meta row */}
-        <div className="flex items-center gap-2 mt-2.5">
+        <div className="flex flex-wrap items-center gap-2 mt-2.5">
           {post.price_level && (
             <span className="pill bg-black/40 backdrop-blur-sm text-gold">
               {PRICE[post.price_level]}
+            </span>
+          )}
+          {post.weather && (
+            <span className="pill bg-black/40 backdrop-blur-sm text-white/80">
+              {post.weather}
+            </span>
+          )}
+          {post.duration_hours && (
+            <span className="pill bg-black/40 backdrop-blur-sm text-white/80">
+              ⏱ {post.duration_hours % 1 === 0 ? post.duration_hours : post.duration_hours}h
+            </span>
+          )}
+          {post.cost_nok && (
+            <span className="pill bg-black/40 backdrop-blur-sm text-white/80">
+              {post.cost_nok.toLocaleString('nb-NO')} kr
             </span>
           )}
           {post.affiliate_url && (
