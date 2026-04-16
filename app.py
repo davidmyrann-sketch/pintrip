@@ -66,12 +66,32 @@ def require_gdpr(f):
 # ── Init DB (lazy — runs on first request, not at import time) ────────────────
 _db_ready = False
 
+def _migrate():
+    """Add any missing columns to existing tables (idempotent)."""
+    migrations = [
+        ("posts", "title",          "VARCHAR(300)"),
+        ("posts", "weather",        "VARCHAR(100)"),
+        ("posts", "duration_hours", "FLOAT"),
+        ("posts", "cost_nok",       "INTEGER"),
+        ("posts", "media_urls",     "TEXT"),
+    ]
+    with db.engine.connect() as conn:
+        for table, col, coltype in migrations:
+            try:
+                conn.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {col} {coltype}"))
+                conn.commit()
+                print(f"[migrate] Added column {table}.{col}")
+            except Exception:
+                pass  # column already exists
+
+
 @app.before_request
 def ensure_db():
     global _db_ready
     if not _db_ready:
         try:
             db.create_all()
+            _migrate()
             _db_ready = True
             print("[DB] Tables created OK")
         except Exception as e:
