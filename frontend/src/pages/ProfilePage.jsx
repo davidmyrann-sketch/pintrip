@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Settings, LogOut, Download, Trash2, Grid3X3, Plus, MoreVertical, Camera } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
-import CreatePostModal from '../components/CreatePostModal'
+import CreatePostModal  from '../components/CreatePostModal'
+import PostDetailModal  from '../components/PostDetailModal'
 
 export default function ProfilePage() {
   const { user, logout }  = useAuth()
@@ -14,7 +15,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showSettings, setSettings]   = useState(false)
   const [showCreate,  setShowCreate]  = useState(false)
-  const [menuPostId,  setMenuPostId]  = useState(null)
+  const [menuPostId,   setMenuPostId]   = useState(null)
+  const [detailPost,   setDetailPost]   = useState(null)
   const avatarInputRef = useRef(null)
 
   const handleAvatarChange = async (e) => {
@@ -196,7 +198,13 @@ export default function ProfilePage() {
           <div className="grid grid-cols-3 gap-1">
             {posts.map(p => (
               <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden bg-surface">
-                <img src={p.image_url} className="w-full h-full object-cover" alt="" loading="lazy" />
+                <img
+                  src={p.image_url}
+                  className="w-full h-full object-cover cursor-pointer"
+                  alt=""
+                  loading="lazy"
+                  onClick={() => !menuPostId && setDetailPost(p)}
+                />
                 {isOwn && (
                   <>
                     <button
@@ -239,6 +247,16 @@ export default function ProfilePage() {
       <CreatePostModal
         onClose={() => setShowCreate(false)}
         onCreated={(newPost) => setPosts(prev => [newPost, ...prev])}
+      />
+    )}
+    {detailPost && (
+      <PostDetailModal
+        post={detailPost}
+        onClose={() => setDetailPost(null)}
+        onUpdated={(updated) => {
+          setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))
+          setDetailPost(updated)
+        }}
       />
     )}
     </>

@@ -136,12 +136,16 @@ export default function PostCard({ post: initialPost, style }) {
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {/* User */}
-        <div className="flex items-center gap-2 mb-3">
-          {post.user?.avatar_url && (
-            <img src={post.user.avatar_url} className="w-8 h-8 rounded-full object-cover border border-white/20" alt="" />
-          )}
+        <button
+          className="flex items-center gap-2 mb-3"
+          onClick={e => { e.stopPropagation(); navigate(`/profile/${post.user?.username}`) }}
+        >
+          {post.user?.avatar_url
+            ? <img src={post.user.avatar_url} className="w-8 h-8 rounded-full object-cover border border-white/20" alt="" />
+            : <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-coral flex items-center justify-center text-bg font-black text-xs">{(post.user?.name || '?')[0].toUpperCase()}</div>
+          }
           <span className="text-white text-sm font-semibold drop-shadow">{post.user?.name}</span>
-        </div>
+        </button>
 
         {/* Location */}
         <div className="flex items-center gap-1.5 mb-1.5">
