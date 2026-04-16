@@ -302,6 +302,31 @@ def get_post(pid):
     return jsonify(post=p.to_dict(uid))
 
 
+@app.route('/api/posts/<int:pid>', methods=['DELETE'])
+@jwt_required()
+def delete_post(pid):
+    uid = current_uid()
+    p   = Post.query.filter_by(id=pid, user_id=uid).first_or_404()
+    db.session.delete(p)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.route('/api/posts/<int:pid>', methods=['PATCH'])
+@jwt_required()
+def edit_post(pid):
+    uid = current_uid()
+    p   = Post.query.filter_by(id=pid, user_id=uid).first_or_404()
+    d   = request.get_json() or {}
+    for field in ('caption', 'location_name', 'city', 'country', 'category',
+                  'price_level', 'rating', 'affiliate_url', 'title',
+                  'weather', 'duration_hours', 'cost_nok'):
+        if field in d:
+            setattr(p, field, d[field])
+    db.session.commit()
+    return jsonify(post=p.to_dict(uid))
+
+
 @app.route('/api/posts/<int:pid>/like', methods=['POST', 'DELETE'])
 @jwt_required()
 def toggle_like(pid):

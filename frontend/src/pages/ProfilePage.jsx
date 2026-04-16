@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Settings, LogOut, Download, Trash2, Grid3X3, Plus } from 'lucide-react'
+import { Settings, LogOut, Download, Trash2, Grid3X3, Plus, MoreVertical } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 import CreatePostModal from '../components/CreatePostModal'
@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showSettings, setSettings]   = useState(false)
   const [showCreate,  setShowCreate]  = useState(false)
+  const [menuPostId,  setMenuPostId]  = useState(null)
 
   const targetUsername = username || user?.username
 
@@ -158,8 +159,39 @@ export default function ProfilePage() {
         ) : (
           <div className="grid grid-cols-3 gap-1">
             {posts.map(p => (
-              <div key={p.id} className="aspect-square rounded-lg overflow-hidden bg-surface">
+              <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden bg-surface">
                 <img src={p.image_url} className="w-full h-full object-cover" alt="" loading="lazy" />
+                {isOwn && (
+                  <>
+                    <button
+                      onClick={() => setMenuPostId(menuPostId === p.id ? null : p.id)}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center"
+                    >
+                      <MoreVertical size={12} className="text-white" />
+                    </button>
+                    {menuPostId === p.id && (
+                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2">
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('Delete this post?')) return
+                            await api.delete(`/api/posts/${p.id}`)
+                            setPosts(prev => prev.filter(x => x.id !== p.id))
+                            setMenuPostId(null)
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-coral text-white text-xs font-bold"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                        <button
+                          onClick={() => setMenuPostId(null)}
+                          className="text-white/60 text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             ))}
           </div>
