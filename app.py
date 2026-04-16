@@ -102,6 +102,11 @@ def ensure_db():
 def health():
     return jsonify(ok=True, status='healthy')
 
+
+@app.route('/api/config')
+def config():
+    return jsonify(mapbox_token=os.environ.get('VITE_MAPBOX_TOKEN', ''))
+
 # ── Global error handler (shows real error in JSON) ───────────────────────────
 import traceback
 

@@ -1,8 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { X, Upload, MapPin, ChevronDown, Loader2, Plus, Trash2 } from 'lucide-react'
 import api from '../lib/api'
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 const CATEGORIES = ['beach', 'city', 'food', 'adventure', 'culture', 'nature']
 const WEATHER_OPTIONS = ['☀️ Sunny', '⛅ Partly cloudy', '🌧️ Rainy', '❄️ Snowy', '🌫️ Foggy', '🌬️ Windy', '🌩️ Stormy']
@@ -26,9 +24,16 @@ export default function CreatePostModal({ onClose, onCreated }) {
   const [submitting, setSubmitting]   = useState(false)
   const [error, setError]             = useState('')
   const [uploadingIdx, setUploadingIdx] = useState(null)
+  const [mapboxToken, setMapboxToken]   = useState(import.meta.env.VITE_MAPBOX_TOKEN || '')
 
   const fileInputRef = useRef(null)
   const geocodeTimer = useRef(null)
+
+  useEffect(() => {
+    if (!mapboxToken) {
+      api.get('/api/config').then(r => setMapboxToken(r.data.mapbox_token || '')).catch(() => {})
+    }
+  }, [])
 
   const handleFiles = useCallback(async (files) => {
     const allowed = Array.from(files).filter(f =>
@@ -68,12 +73,12 @@ export default function CreatePostModal({ onClose, onCreated }) {
   }
 
   const geocode = async (query) => {
-    if (!MAPBOX_TOKEN || query.length < 3) { setGeocodeResults([]); return }
+    if (!mapboxToken || query.length < 3) { setGeocodeResults([]); return }
     setGeocoding(true)
     try {
       const res = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-        `?access_token=${MAPBOX_TOKEN}&types=place,poi,locality,neighborhood,address&limit=5`
+        `?access_token=${mapboxToken}&types=place,poi,locality,neighborhood,address&limit=5`
       )
       const data = await res.json()
       setGeocodeResults(data.features || [])
