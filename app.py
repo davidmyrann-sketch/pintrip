@@ -596,6 +596,19 @@ def profile(username):
     return jsonify(user=u.to_dict(), posts=[p.to_dict(uid) for p in posts])
 
 
+@app.route('/api/profile/me', methods=['PATCH'])
+@jwt_required()
+def update_profile():
+    uid = current_uid()
+    u   = User.query.get_or_404(uid)
+    d   = request.get_json() or {}
+    for field in ('name', 'bio', 'avatar_url'):
+        if field in d:
+            setattr(u, field, d[field])
+    db.session.commit()
+    return jsonify(user=u.to_dict())
+
+
 @app.route('/api/profile/me/saves', methods=['GET'])
 @jwt_required()
 def my_saves():

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Settings, LogOut, Download, Trash2, Grid3X3, Plus, MoreVertical } from 'lucide-react'
+import { Settings, LogOut, Download, Trash2, Grid3X3, Plus, MoreVertical, Camera } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 import CreatePostModal from '../components/CreatePostModal'
@@ -15,6 +15,31 @@ export default function ProfilePage() {
   const [showSettings, setSettings]   = useState(false)
   const [showCreate,  setShowCreate]  = useState(false)
   const [menuPostId,  setMenuPostId]  = useState(null)
+  const avatarInputRef = useRef(null)
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const img = new Image()
+      img.onload = async () => {
+        const SIZE = 300
+        const canvas = document.createElement('canvas')
+        canvas.width = SIZE; canvas.height = SIZE
+        const ctx = canvas.getContext('2d')
+        const min = Math.min(img.width, img.height)
+        const sx  = (img.width  - min) / 2
+        const sy  = (img.height - min) / 2
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE)
+        const base64 = canvas.toDataURL('image/jpeg', 0.85)
+        const { data } = await api.patch('/api/profile/me', { avatar_url: base64 })
+        setProfile(data.user)
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+  }
 
   const targetUsername = username || user?.username
 
@@ -69,12 +94,23 @@ export default function ProfilePage() {
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold to-coral flex items-center justify-center overflow-hidden">
+            <div
+              className="relative w-16 h-16 rounded-full bg-gradient-to-br from-gold to-coral flex items-center justify-center overflow-hidden"
+              onClick={() => isOwn && avatarInputRef.current?.click()}
+            >
               {profile?.avatar_url
                 ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
                 : <span className="text-bg font-black text-xl">{(profile?.name || '?')[0].toUpperCase()}</span>
               }
+              {isOwn && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 active:opacity-100 transition-opacity">
+                  <Camera size={18} className="text-white" />
+                </div>
+              )}
             </div>
+            {isOwn && (
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            )}
             <div>
               <p className="text-text-1 font-black text-lg">{profile?.name}</p>
               <p className="text-text-3 text-xs">@{profile?.username}</p>
