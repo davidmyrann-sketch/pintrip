@@ -640,8 +640,11 @@ def gdpr_delete():
 
 @app.route('/api/seed', methods=['POST'])
 def seed():
+    seed_key = os.environ.get('SEED_KEY', '')
+    provided  = (request.get_json(silent=True) or {}).get('key', '')
     if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
-        return jsonify(error='Not available in production'), 403
+        if not seed_key or provided != seed_key:
+            return jsonify(error='Not available in production'), 403
     from seed import run_seed
     run_seed(db, app)
     return jsonify(ok=True, message='Database seeded')
