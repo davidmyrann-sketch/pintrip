@@ -104,7 +104,6 @@ export default function CreatePostModal({ onClose, onCreated }) {
   const valid = mediaItems.length > 0
     && mediaItems.every(m => !m.uploading)
     && locationName.trim()
-    && lat !== null && lng !== null
 
   const handleSubmit = async () => {
     if (!valid) { setError('Add at least one photo and pick a location from the list.'); return }
@@ -119,8 +118,8 @@ export default function CreatePostModal({ onClose, onCreated }) {
         location_name:  locationName.trim(),
         city:           city || undefined,
         country:        country || undefined,
-        lat,
-        lng,
+        lat:            lat ?? undefined,
+        lng:            lng ?? undefined,
         category,
         weather:        weather || undefined,
         duration_hours: durationHours ? parseFloat(durationHours) : undefined,

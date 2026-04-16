@@ -254,8 +254,6 @@ def create_post():
         return jsonify(error='At least one media item required'), 400
     if not d.get('location_name'):
         return jsonify(error='location_name required'), 400
-    if d.get('lat') is None or d.get('lng') is None:
-        return jsonify(error='Coordinates (lat/lng) required'), 400
 
     extra_media = media_urls[1:] if len(media_urls) > 1 else []
 
