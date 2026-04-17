@@ -1,4 +1,6 @@
-import os, json
+import os, json, secrets, smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory, render_template
@@ -73,7 +75,9 @@ def _migrate():
         ("posts", "weather",        "VARCHAR(100)"),
         ("posts", "duration_hours", "FLOAT"),
         ("posts", "cost_nok",       "INTEGER"),
-        ("posts", "media_urls",     "TEXT"),
+        ("posts",  "media_urls",          "TEXT"),
+        ("users",  "reset_token",         "VARCHAR(100)"),
+        ("users",  "reset_token_expires", "TIMESTAMP"),
     ]
     with db.engine.connect() as conn:
         for table, col, coltype in migrations:
@@ -168,6 +172,71 @@ def login():
         access_token=create_access_token(identity=str(u.id)),
         refresh_token=create_refresh_token(identity=str(u.id)),
     )
+
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    email = ((request.get_json() or {}).get('email') or '').strip().lower()
+    u = User.query.filter_by(email=email).first()
+    if u:
+        token   = secrets.token_urlsafe(32)
+        expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        u.reset_token         = token
+        u.reset_token_expires = expires
+        db.session.commit()
+
+        reset_url = f"https://app.pintrip.no/reset-password?token={token}"
+        html = f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#080812;color:#F5F5F0;border-radius:16px">
+          <div style="text-align:center;margin-bottom:24px">
+            <span style="font-size:40px">📍</span>
+            <h1 style="color:#F5F5F0;font-size:24px;margin:8px 0 4px">PinTrip</h1>
+            <p style="color:#888;font-size:13px;margin:0">Reset your password</p>
+          </div>
+          <p style="color:#ccc;font-size:14px">Hi {u.name or u.username},</p>
+          <p style="color:#ccc;font-size:14px">We received a request to reset your password. Click the button below — the link expires in <strong style="color:#F5A623">1 hour</strong>.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="{reset_url}" style="background:#F5A623;color:#080812;font-weight:700;font-size:14px;padding:14px 32px;border-radius:999px;text-decoration:none;display:inline-block">
+              Reset password
+            </a>
+          </div>
+          <p style="color:#666;font-size:12px;text-align:center">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+        """
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Reset your PinTrip password'
+        msg['From']    = 'PinTrip <heidimybot@gmail.com>'
+        msg['To']      = email
+        msg.attach(MIMEText(html, 'html'))
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as s:
+                s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
+                s.sendmail('heidimybot@gmail.com', email, msg.as_string())
+        except Exception as e:
+            print(f"[forgot-password] email error: {e}")
+
+    return jsonify(ok=True)   # alltid success — ikke avslør om e-post finnes
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+def reset_password():
+    d        = request.get_json() or {}
+    token    = (d.get('token') or '').strip()
+    password = d.get('password') or ''
+    if not token or len(password) < 8:
+        return jsonify(error='Token and password (min 8 chars) required'), 400
+
+    u = User.query.filter_by(reset_token=token).first()
+    if not u:
+        return jsonify(error='Invalid or expired reset link'), 400
+    if u.reset_token_expires.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        return jsonify(error='Reset link has expired'), 400
+
+    u.set_password(password)
+    u.reset_token         = None
+    u.reset_token_expires = None
+    db.session.commit()
+    return jsonify(ok=True)
 
 
 @app.route('/api/auth/refresh', methods=['POST'])

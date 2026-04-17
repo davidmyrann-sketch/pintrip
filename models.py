@@ -18,8 +18,10 @@ class User(db.Model):
     name        = db.Column(db.String(200))
     avatar_url  = db.Column(db.Text)
     bio         = db.Column(db.Text)
-    gdpr_consent_at    = db.Column(db.DateTime, nullable=True)
-    marketing_consent  = db.Column(db.Boolean, default=False)
+    gdpr_consent_at     = db.Column(db.DateTime, nullable=True)
+    marketing_consent   = db.Column(db.Boolean, default=False)
+    reset_token         = db.Column(db.String(100), nullable=True)
+    reset_token_expires = db.Column(db.DateTime,    nullable=True)
     created_at  = db.Column(db.DateTime, default=now_utc)
     updated_at  = db.Column(db.DateTime, default=now_utc, onupdate=now_utc)
 

@@ -6,7 +6,8 @@ import TripsPage   from './pages/TripsPage'
 import TripDetail  from './pages/TripDetail'
 import ProfilePage from './pages/ProfilePage'
 import AuthPage    from './pages/AuthPage'
-import PrivacyPage from './pages/PrivacyPage'
+import PrivacyPage        from './pages/PrivacyPage'
+import ResetPasswordPage  from './pages/ResetPasswordPage'
 import BottomNav   from './components/BottomNav'
 import GdprBanner  from './components/GdprBanner'
 
@@ -24,8 +25,9 @@ export default function App() {
               <Route path="/profile"     element={<ProfilePage />} />
               <Route path="/profile/:username" element={<ProfilePage />} />
               <Route path="/auth"        element={<AuthPage />} />
-              <Route path="/privacy"     element={<PrivacyPage />} />
-              <Route path="*"            element={<Navigate to="/" replace />} />
+              <Route path="/privacy"        element={<PrivacyPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="*"               element={<Navigate to="/" replace />} />
             </Routes>
           </div>
           <BottomNav />
