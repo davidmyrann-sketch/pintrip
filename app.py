@@ -879,7 +879,8 @@ def spa(path):
     if path.startswith('api/') or path.startswith('static/'):
         from flask import abort
         abort(404)
-    return render_template('index.html')
+    from flask import send_from_directory
+    return send_from_directory(app.static_folder, 'index.html')
 
 
 if __name__ == '__main__':
