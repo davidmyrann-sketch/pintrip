@@ -104,16 +104,29 @@ def ensure_db():
 
 @app.route('/api/admin/migrate', methods=['POST'])
 def force_migrate():
-    """Éngangsbruk: tving migrasjonen manuelt."""
     key = (request.get_json() or {}).get('key')
     if key != os.environ.get('SEED_KEY', 'pintrip-seed-2024'):
         return jsonify(error='Unauthorized'), 403
-    try:
-        db.create_all()
-        _migrate()
-        return jsonify(ok=True, msg='Migration done')
-    except Exception as e:
-        return jsonify(error=str(e)), 500
+    results = []
+    cols = [
+        ("users",  "reset_token",         "VARCHAR(100)"),
+        ("users",  "reset_token_expires", "TIMESTAMP"),
+        ("posts",  "title",               "VARCHAR(300)"),
+        ("posts",  "weather",             "VARCHAR(100)"),
+        ("posts",  "duration_hours",      "FLOAT"),
+        ("posts",  "cost_nok",            "INTEGER"),
+        ("posts",  "media_urls",          "TEXT"),
+    ]
+    with db.engine.connect() as conn:
+        for table, col, coltype in cols:
+            try:
+                conn.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {col} {coltype}"))
+                conn.commit()
+                results.append(f"ADDED {table}.{col}")
+            except Exception as e:
+                conn.rollback()
+                results.append(f"SKIP {table}.{col}: {str(e)[:60]}")
+    return jsonify(ok=True, results=results)
 
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.route('/health')
