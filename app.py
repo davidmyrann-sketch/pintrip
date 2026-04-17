@@ -102,6 +102,16 @@ def ensure_db():
             print(f"[DB] create_all error: {e}")
 
 
+@app.route('/api/admin/list-users', methods=['POST'])
+def admin_list_users():
+    d = request.get_json() or {}
+    if d.get('key') != os.environ.get('SEED_KEY', 'pintrip-seed-2024'):
+        return jsonify(error='Unauthorized'), 403
+    with db.engine.connect() as conn:
+        rows = conn.execute(db.text("SELECT id, email, username, name FROM users ORDER BY id")).fetchall()
+    return jsonify(users=[{"id": r[0], "email": r[1], "username": r[2], "name": r[3]} for r in rows])
+
+
 @app.route('/api/admin/get-reset-token', methods=['POST'])
 def admin_get_reset_token():
     d = request.get_json() or {}
