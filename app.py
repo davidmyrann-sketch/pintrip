@@ -297,23 +297,19 @@ def forgot_password():
             resend_key = os.environ.get('RESEND_API_KEY', '')
             if resend_key:
                 try:
-                    import urllib.request as _urlreq, ssl as _ssl
-                    _payload = json.dumps({
-                        "from": "PinTrip <noreply@pintrip.no>",
-                        "to": [email],
-                        "subject": "Reset your PinTrip password",
-                        "html": html
-                    }).encode('utf-8')
-                    _req = _urlreq.Request(
+                    import requests as _requests
+                    _resp = _requests.post(
                         "https://api.resend.com/emails",
-                        data=_payload,
-                        headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
-                        method="POST"
+                        json={
+                            "from": "PinTrip <noreply@pintrip.no>",
+                            "to": [email],
+                            "subject": "Reset your PinTrip password",
+                            "html": html
+                        },
+                        headers={"Authorization": f"Bearer {resend_key}"},
+                        timeout=10
                     )
-                    _ctx = _ssl.create_default_context()
-                    with _urlreq.urlopen(_req, timeout=10, context=_ctx) as _resp:
-                        _body = _resp.read().decode('utf-8')
-                        print(f"[forgot-password] resend OK status={_resp.status} body={_body} to {email}")
+                    print(f"[forgot-password] resend status={_resp.status_code} body={_resp.text} to {email}")
                 except Exception as e:
                     import traceback as _tb
                     print(f"[forgot-password] resend error: {e}\n{_tb.format_exc()}")
