@@ -251,13 +251,27 @@ def forgot_password():
             msg['From']    = 'PinTrip <heidimybot@gmail.com>'
             msg['To']      = email
             msg.attach(MIMEText(html, 'html', 'utf-8'))
+            email_sent = False
+            # Try port 587 (STARTTLS) first — works on most cloud hosts
             try:
-                with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8) as s:
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as s:
+                    s.ehlo()
+                    s.starttls()
                     s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
                     s.sendmail('heidimybot@gmail.com', email, msg.as_string())
-                print(f"[forgot-password] email sent to {email}")
+                email_sent = True
+                print(f"[forgot-password] email sent via 587 to {email}")
             except Exception as e:
-                print(f"[forgot-password] email error (SMTP likely blocked on Railway): {e}")
+                print(f"[forgot-password] 587 failed: {e}")
+            # Fallback: port 465 (SSL)
+            if not email_sent:
+                try:
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8) as s:
+                        s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
+                        s.sendmail('heidimybot@gmail.com', email, msg.as_string())
+                    print(f"[forgot-password] email sent via 465 to {email}")
+                except Exception as e:
+                    print(f"[forgot-password] 465 also failed: {e}")
 
         return jsonify(ok=True)
     except Exception as e:
