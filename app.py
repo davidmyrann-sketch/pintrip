@@ -11,7 +11,7 @@ from flask_jwt_extended import (
 from flask_cors import CORS
 from models import db, User, Post, Trip, TripLocation, Like, Save, Comment
 
-app = Flask(__name__, static_folder='static', static_url_path='', template_folder='templates')
+app = Flask(__name__, static_folder='static', static_url_path='/_static', template_folder='templates')
 
 # ── Config ──────────────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///pintrip.db')
@@ -876,11 +876,18 @@ def seed():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def spa(path):
-    if path.startswith('api/') or path.startswith('static/'):
+    if path.startswith('api/'):
         from flask import abort
         abort(404)
+    import os
     from flask import send_from_directory
-    return send_from_directory(app.static_folder, 'index.html')
+    static_dir = app.static_folder
+    # Serve the actual file if it exists (assets, images, etc.)
+    file_path = os.path.join(static_dir, path)
+    if path and os.path.isfile(file_path):
+        return send_from_directory(static_dir, path)
+    # Otherwise serve index.html (SPA client-side routing)
+    return send_from_directory(static_dir, 'index.html')
 
 
 if __name__ == '__main__':
