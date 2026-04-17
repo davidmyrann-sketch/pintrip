@@ -132,6 +132,18 @@ def admin_get_reset_token():
     )
 
 
+@app.route('/api/admin/env-check', methods=['POST'])
+def admin_env_check():
+    d = request.get_json() or {}
+    if d.get('key') != os.environ.get('SEED_KEY', 'pintrip-seed-2024'):
+        return jsonify(error='Unauthorized'), 403
+    rk = os.environ.get('RESEND_API_KEY', '')
+    return jsonify(
+        resend_key_set=bool(rk),
+        resend_key_prefix=rk[:12] + '...' if rk else None
+    )
+
+
 @app.route('/api/admin/migrate', methods=['POST'])
 def force_migrate():
     key = (request.get_json() or {}).get('key')
