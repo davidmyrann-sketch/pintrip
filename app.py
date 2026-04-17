@@ -102,6 +102,26 @@ def ensure_db():
             print(f"[DB] create_all error: {e}")
 
 
+@app.route('/api/admin/get-reset-token', methods=['POST'])
+def admin_get_reset_token():
+    d = request.get_json() or {}
+    if d.get('key') != os.environ.get('SEED_KEY', 'pintrip-seed-2024'):
+        return jsonify(error='Unauthorized'), 403
+    email = (d.get('email') or '').strip().lower()
+    with db.engine.connect() as conn:
+        row = conn.execute(
+            db.text("SELECT reset_token, reset_token_expires FROM users WHERE email = :e"),
+            {"e": email}
+        ).fetchone()
+    if not row or not row[0]:
+        return jsonify(error='No token found'), 404
+    return jsonify(
+        token=row[0],
+        expires=str(row[1]),
+        url=f"https://app.pintrip.no/reset-password?token={row[0]}"
+    )
+
+
 @app.route('/api/admin/migrate', methods=['POST'])
 def force_migrate():
     key = (request.get_json() or {}).get('key')
@@ -251,27 +271,29 @@ def forgot_password():
             msg['From']    = 'PinTrip <heidimybot@gmail.com>'
             msg['To']      = email
             msg.attach(MIMEText(html, 'html', 'utf-8'))
-            email_sent = False
-            # Try port 587 (STARTTLS) first — works on most cloud hosts
-            try:
-                with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as s:
-                    s.ehlo()
-                    s.starttls()
-                    s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
-                    s.sendmail('heidimybot@gmail.com', email, msg.as_string())
-                email_sent = True
-                print(f"[forgot-password] email sent via 587 to {email}")
-            except Exception as e:
-                print(f"[forgot-password] 587 failed: {e}")
-            # Fallback: port 465 (SSL)
-            if not email_sent:
+            # Send via Resend API (HTTPS — works on Railway)
+            resend_key = os.environ.get('RESEND_API_KEY', '')
+            if resend_key:
                 try:
-                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8) as s:
-                        s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
-                        s.sendmail('heidimybot@gmail.com', email, msg.as_string())
-                    print(f"[forgot-password] email sent via 465 to {email}")
+                    import urllib.request as _urlreq
+                    _payload = json.dumps({
+                        "from": "PinTrip <noreply@pintrip.no>",
+                        "to": [email],
+                        "subject": "Reset your PinTrip password",
+                        "html": html
+                    }).encode('utf-8')
+                    _req = _urlreq.Request(
+                        "https://api.resend.com/emails",
+                        data=_payload,
+                        headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with _urlreq.urlopen(_req, timeout=10) as _resp:
+                        print(f"[forgot-password] resend OK status={_resp.status} to {email}")
                 except Exception as e:
-                    print(f"[forgot-password] 465 also failed: {e}")
+                    print(f"[forgot-password] resend error: {e}")
+            else:
+                print(f"[forgot-password] no RESEND_API_KEY — email not sent. token saved to DB.")
 
         return jsonify(ok=True)
     except Exception as e:
