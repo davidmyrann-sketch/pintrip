@@ -297,7 +297,7 @@ def forgot_password():
             resend_key = os.environ.get('RESEND_API_KEY', '')
             if resend_key:
                 try:
-                    import urllib.request as _urlreq
+                    import urllib.request as _urlreq, ssl as _ssl
                     _payload = json.dumps({
                         "from": "PinTrip <noreply@pintrip.no>",
                         "to": [email],
@@ -310,12 +310,15 @@ def forgot_password():
                         headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
                         method="POST"
                     )
-                    with _urlreq.urlopen(_req, timeout=10) as _resp:
-                        print(f"[forgot-password] resend OK status={_resp.status} to {email}")
+                    _ctx = _ssl.create_default_context()
+                    with _urlreq.urlopen(_req, timeout=10, context=_ctx) as _resp:
+                        _body = _resp.read().decode('utf-8')
+                        print(f"[forgot-password] resend OK status={_resp.status} body={_body} to {email}")
                 except Exception as e:
-                    print(f"[forgot-password] resend error: {e}")
+                    import traceback as _tb
+                    print(f"[forgot-password] resend error: {e}\n{_tb.format_exc()}")
             else:
-                print(f"[forgot-password] no RESEND_API_KEY — email not sent. token saved to DB.")
+                print(f"[forgot-password] no RESEND_API_KEY — email not sent.")
 
         return jsonify(ok=True)
     except Exception as e:
