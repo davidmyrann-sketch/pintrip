@@ -205,46 +205,57 @@ def login():
 def forgot_password():
     try:
         email = ((request.get_json() or {}).get('email') or '').strip().lower()
-        u = User.query.filter_by(email=email).first()
-        if u:
+        # Use raw SQL to avoid SQLAlchemy session state issues
+        with db.engine.connect() as conn:
+            row = conn.execute(
+                db.text("SELECT id, username, name FROM users WHERE email = :e"),
+                {"e": email}
+            ).fetchone()
+        if row:
+            uid, uname, uname_display = row[0], row[1], row[2]
             token   = secrets.token_urlsafe(32)
             expires = datetime.utcnow() + timedelta(hours=1)
-            u.reset_token         = token
-            u.reset_token_expires = expires
             try:
-                db.session.commit()
+                with db.engine.connect() as conn:
+                    conn.execute(
+                        db.text("UPDATE users SET reset_token = :t, reset_token_expires = :e WHERE id = :id"),
+                        {"t": token, "e": expires, "id": uid}
+                    )
+                    conn.commit()
             except Exception as e:
-                db.session.rollback()
                 print(f"[forgot-password] db error: {e}")
                 return jsonify(ok=True)
 
+            display_name = uname_display or uname
             reset_url = f"https://app.pintrip.no/reset-password?token={token}"
-            html = f"""
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#080812;color:#F5F5F0;border-radius:16px">
-              <div style="text-align:center;margin-bottom:24px">
-                <span style="font-size:40px">&#128205;</span>
-                <h1 style="color:#F5F5F0;font-size:24px;margin:8px 0 4px">PinTrip</h1>
-                <p style="color:#888;font-size:13px;margin:0">Reset your password</p>
-              </div>
-              <p style="color:#ccc;font-size:14px">Hi {u.name or u.username},</p>
-              <p style="color:#ccc;font-size:14px">We received a request to reset your password. Click the button below - the link expires in 1 hour.</p>
-              <div style="text-align:center;margin:28px 0">
-                <a href="{reset_url}" style="background:#F5A623;color:#080812;font-weight:700;font-size:14px;padding:14px 32px;border-radius:999px;text-decoration:none;display:inline-block">
-                  Reset password
-                </a>
-              </div>
-              <p style="color:#666;font-size:12px;text-align:center">If you didn't request this, you can safely ignore this email.</p>
-            </div>
-            """
+            html = (
+                '<div style="font-family:sans-serif;max-width:480px;margin:0 auto;'
+                'padding:32px;background:#080812;color:#F5F5F0;border-radius:16px">'
+                '<div style="text-align:center;margin-bottom:24px">'
+                '<h1 style="color:#F5F5F0;font-size:24px;margin:8px 0 4px">PinTrip</h1>'
+                '<p style="color:#888;font-size:13px;margin:0">Reset your password</p>'
+                '</div>'
+                f'<p style="color:#ccc;font-size:14px">Hi {display_name},</p>'
+                '<p style="color:#ccc;font-size:14px">We received a request to reset your password. '
+                'Click the button below - the link expires in 1 hour.</p>'
+                '<div style="text-align:center;margin:28px 0">'
+                f'<a href="{reset_url}" style="background:#F5A623;color:#080812;font-weight:700;'
+                'font-size:14px;padding:14px 32px;border-radius:999px;text-decoration:none;display:inline-block">'
+                'Reset password</a></div>'
+                '<p style="color:#666;font-size:12px;text-align:center">'
+                "If you didn't request this, you can safely ignore this email.</p>"
+                '</div>'
+            )
             msg = MIMEMultipart('alternative')
             msg['Subject'] = 'Reset your PinTrip password'
             msg['From']    = 'PinTrip <heidimybot@gmail.com>'
             msg['To']      = email
-            msg.attach(MIMEText(html, 'html'))
+            msg.attach(MIMEText(html, 'html', 'utf-8'))
             try:
                 with smtplib.SMTP_SSL('smtp.gmail.com', 465) as s:
                     s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
                     s.sendmail('heidimybot@gmail.com', email, msg.as_string())
+                print(f"[forgot-password] email sent to {email}")
             except Exception as e:
                 print(f"[forgot-password] email error: {e}")
 
