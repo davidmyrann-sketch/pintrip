@@ -101,6 +101,20 @@ def ensure_db():
         except Exception as e:
             print(f"[DB] create_all error: {e}")
 
+
+@app.route('/api/admin/migrate', methods=['POST'])
+def force_migrate():
+    """Éngangsbruk: tving migrasjonen manuelt."""
+    key = (request.get_json() or {}).get('key')
+    if key != os.environ.get('SEED_KEY', 'pintrip-seed-2024'):
+        return jsonify(error='Unauthorized'), 403
+    try:
+        db.create_all()
+        _migrate()
+        return jsonify(ok=True, msg='Migration done')
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.route('/health')
 def health():
