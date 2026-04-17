@@ -252,12 +252,12 @@ def forgot_password():
             msg['To']      = email
             msg.attach(MIMEText(html, 'html', 'utf-8'))
             try:
-                with smtplib.SMTP_SSL('smtp.gmail.com', 465) as s:
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8) as s:
                     s.login('heidimybot@gmail.com', 'rdfsfbvwzbjahaia')
                     s.sendmail('heidimybot@gmail.com', email, msg.as_string())
                 print(f"[forgot-password] email sent to {email}")
             except Exception as e:
-                print(f"[forgot-password] email error: {e}")
+                print(f"[forgot-password] email error (SMTP likely blocked on Railway): {e}")
 
         return jsonify(ok=True)
     except Exception as e:
