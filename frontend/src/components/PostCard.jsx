@@ -4,7 +4,7 @@ import { Heart, Bookmark, MessageCircle, MapPin, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
-import SaveModal from './SaveModal'
+import PostDetailSheet from './PostDetailSheet'
 
 const PRICE = ['', '$', '$$', '$$$', '$$$$']
 const CATEGORY_COLOR = {
@@ -20,10 +20,11 @@ export default function PostCard({ post: initialPost, style }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [post,       setPost]       = useState(initialPost)
-  const [likeAnim,   setLikeAnim]   = useState(false)
-  const [saveAnim,   setSaveAnim]   = useState(false)
-  const [showSave,   setShowSave]   = useState(false)
+  const [likeAnim,    setLikeAnim]    = useState(false)
+  const [saveAnim,    setSaveAnim]    = useState(false)
+  const [showDetail,  setShowDetail]  = useState(false)
   const lastTap      = useRef(0)
+  const tapTimer     = useRef(null)
   const doubleTapRef = useRef(null)
 
   const toggleLike = async () => {
@@ -38,15 +39,20 @@ export default function PostCard({ post: initialPost, style }) {
     setTimeout(() => setLikeAnim(false), 400)
   }
 
-  const handleDoubleTap = () => {
+  const handleTap = () => {
     const now = Date.now()
     if (now - lastTap.current < 300) {
+      // double tap — like
+      clearTimeout(tapTimer.current)
       if (!post.liked) toggleLike()
       if (doubleTapRef.current) {
         doubleTapRef.current.classList.remove('heart-pop')
         void doubleTapRef.current.offsetWidth
         doubleTapRef.current.classList.add('heart-pop')
       }
+    } else {
+      // single tap — open detail after delay so double-tap can cancel it
+      tapTimer.current = setTimeout(() => setShowDetail(true), 300)
     }
     lastTap.current = now
   }
@@ -67,7 +73,7 @@ export default function PostCard({ post: initialPost, style }) {
   return (
     <div className="feed-item" style={style}>
       {/* Full-bleed image */}
-      <div className="absolute inset-0" onClick={handleDoubleTap}>
+      <div className="absolute inset-0" onClick={handleTap}>
         <img
           src={post.image_url}
           alt={post.location_name}
@@ -118,7 +124,7 @@ export default function PostCard({ post: initialPost, style }) {
         <button
           onClick={() => {
             if (!user) { navigate('/auth'); return }
-            setShowSave(true)
+            handleSave(null)
           }}
           className="flex flex-col items-center gap-1"
         >
@@ -200,12 +206,8 @@ export default function PostCard({ post: initialPost, style }) {
         </div>
       </div>
 
-      {showSave && createPortal(
-        <SaveModal
-          post={post}
-          onClose={() => setShowSave(false)}
-          onSaved={(tid) => { handleSave(tid); setShowSave(false) }}
-        />,
+      {showDetail && createPortal(
+        <PostDetailSheet post={post} onClose={() => setShowDetail(false)} />,
         document.body
       )}
     </div>

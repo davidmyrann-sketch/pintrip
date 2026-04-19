@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../contexts/AuthContext'
+import CreatePostModal from '../components/CreatePostModal'
 
 const CATEGORIES = [
   { id: 'all',       label: '✨ All'       },
@@ -16,11 +17,12 @@ const CATEGORIES = [
 ]
 
 export default function FeedPage() {
-  const [posts,    setPosts]    = useState([])
-  const [page,     setPage]     = useState(1)
-  const [hasNext,  setHasNext]  = useState(true)
-  const [loading,  setLoading]  = useState(false)
-  const [category, setCategory] = useState('all')
+  const [posts,      setPosts]      = useState([])
+  const [page,       setPage]       = useState(1)
+  const [hasNext,    setHasNext]    = useState(true)
+  const [loading,    setLoading]    = useState(false)
+  const [category,   setCategory]   = useState('all')
+  const [showCreate, setShowCreate] = useState(false)
   const loaderRef = useRef(null)
   const { user }  = useAuth()
   const navigate  = useNavigate()
@@ -63,7 +65,7 @@ export default function FeedPage() {
           <span className="font-black text-xl text-text-1 tracking-tight">PinTrip</span>
           {user && (
             <button
-              onClick={() => navigate('/post/new')}
+              onClick={() => setShowCreate(true)}
               className="w-8 h-8 rounded-full bg-gold flex items-center justify-center shadow-lg"
             >
               <Plus size={16} className="text-bg" strokeWidth={3} />
@@ -105,6 +107,13 @@ export default function FeedPage() {
           </div>
         )}
       </div>
+
+      {showCreate && (
+        <CreatePostModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(newPost) => { setPosts(prev => [newPost, ...prev]); setShowCreate(false) }}
+        />
+      )}
     </div>
   )
 }

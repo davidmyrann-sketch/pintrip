@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Search, X } from 'lucide-react'
 import { Star, MapPin } from 'lucide-react'
 import api from '../lib/api'
-import SaveModal from '../components/SaveModal'
+import PostDetailSheet from '../components/PostDetailSheet'
 
 const CATS = [
   { id: 'trending', label: '🔥 Trending' },
@@ -118,13 +118,8 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Quick save modal when tapping a result */}
       {selected && (
-        <SaveModal
-          post={selected}
-          onClose={() => setSelected(null)}
-          onSaved={() => setSelected(null)}
-        />
+        <PostDetailSheet post={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   )

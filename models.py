@@ -125,11 +125,16 @@ class Trip(db.Model):
                                 cascade='all, delete-orphan', order_by='TripLocation.order_index')
 
     def to_dict(self, include_locations=False):
+        cover = self.cover_image_url
+        if not cover:
+            first_loc = self.locations.first()
+            if first_loc and first_loc.post:
+                cover = first_loc.post.image_url
         data = {
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'cover_image_url': self.cover_image_url,
+            'cover_image_url': cover,
             'is_public': self.is_public,
             'location_count': self.locations.count(),
             'created_at': self.created_at.isoformat(),

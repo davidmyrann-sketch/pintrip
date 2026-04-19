@@ -809,6 +809,48 @@ def my_saves():
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# AI
+# ════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/ai/suggest-trip', methods=['POST'])
+@jwt_required()
+def suggest_trip():
+    d = request.get_json() or {}
+    post_id = d.get('post_id')
+    p = Post.query.get(post_id) if post_id else None
+    if not p:
+        return jsonify(name='My Trip', description=''), 200
+
+    city    = p.city or ''
+    country = p.country or ''
+    cat     = p.category or ''
+
+    cat_themes = {
+        'beach':     'Beach Getaway',
+        'city':      'City Break',
+        'nature':    'Nature Escape',
+        'adventure': 'Adventure Trip',
+        'culture':   'Cultural Journey',
+        'food':      'Food & Drink Tour',
+    }
+    theme = cat_themes.get(cat, 'Travel')
+
+    if city and country:
+        name = f'{city} {theme}'
+    elif country:
+        name = f'{country} {theme}'
+    else:
+        name = theme
+
+    desc = ''
+    parts = [p for p in [city, country] if p]
+    if parts:
+        desc = 'A trip to ' + ', '.join(parts)
+
+    return jsonify(name=name, description=desc)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # GDPR
 # ════════════════════════════════════════════════════════════════════════════
 
