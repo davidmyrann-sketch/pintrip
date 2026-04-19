@@ -168,10 +168,30 @@ def admin_env_check():
     d = request.get_json() or {}
     if d.get('key') != os.environ.get('SEED_KEY', 'pintrip-seed-2024'):
         return jsonify(error='Unauthorized'), 403
-    rk = os.environ.get('RESEND_API_KEY', '')
+    rk  = os.environ.get('RESEND_API_KEY', '')
+    cl  = os.environ.get('CLOUDINARY_CLOUD_NAME', '')
+    cak = os.environ.get('CLOUDINARY_API_KEY', '')
+    cas = os.environ.get('CLOUDINARY_API_SECRET', '')
+
+    # Test Cloudinary upload
+    cloudinary_test = None
+    if cl and cak and cas:
+        try:
+            import cloudinary, cloudinary.uploader
+            cloudinary.config(cloud_name=cl, api_key=cak, api_secret=cas, secure=True)
+            tiny = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
+            r = cloudinary.uploader.upload(tiny, folder='pintrip-test', resource_type='image')
+            cloudinary_test = r.get('secure_url', 'no url')
+        except Exception as e:
+            cloudinary_test = f'ERROR: {e}'
+    else:
+        cloudinary_test = 'env vars missing'
+
     return jsonify(
         resend_key_set=bool(rk),
-        resend_key_prefix=rk[:12] + '...' if rk else None
+        cloudinary_cloud=cl or 'NOT SET',
+        cloudinary_api_key=cak[:8] + '...' if cak else 'NOT SET',
+        cloudinary_test=cloudinary_test,
     )
 
 
