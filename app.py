@@ -187,11 +187,14 @@ def admin_env_check():
     else:
         cloudinary_test = 'env vars missing'
 
+    cloud_keys = [k for k in os.environ if 'CLOUD' in k.upper()]
+
     return jsonify(
         resend_key_set=bool(rk),
         cloudinary_cloud=cl or 'NOT SET',
         cloudinary_api_key=cak[:8] + '...' if cak else 'NOT SET',
         cloudinary_test=cloudinary_test,
+        all_cloud_vars=cloud_keys,
     )
 
 
