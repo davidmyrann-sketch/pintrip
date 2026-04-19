@@ -47,6 +47,37 @@ def add_cors(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
     return response
 
+# ── Cloudinary ────────────────────────────────────────────────────────────────
+_cloudinary_configured = False
+def _ensure_cloudinary():
+    global _cloudinary_configured
+    if _cloudinary_configured:
+        return True
+    cloud = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    key   = os.environ.get('CLOUDINARY_API_KEY')
+    sec   = os.environ.get('CLOUDINARY_API_SECRET')
+    if cloud and key and sec:
+        import cloudinary
+        cloudinary.config(cloud_name=cloud, api_key=key, api_secret=sec, secure=True)
+        _cloudinary_configured = True
+        return True
+    return False
+
+def upload_image(data_url):
+    """Upload a base64 data URL to Cloudinary. Returns CDN URL or original."""
+    if not data_url or not data_url.startswith('data:'):
+        return data_url
+    if not _ensure_cloudinary():
+        return data_url
+    try:
+        import cloudinary.uploader
+        result = cloudinary.uploader.upload(data_url, folder='pintrip', resource_type='image')
+        return result.get('secure_url', data_url)
+    except Exception as e:
+        print(f'[cloudinary] upload error: {e}')
+        return data_url
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def current_uid():
     try:
@@ -434,6 +465,9 @@ def create_post():
     if not d.get('location_name'):
         return jsonify(error='location_name required'), 400
 
+    # Upload base64 images to Cloudinary
+    image_url   = upload_image(image_url)
+    media_urls  = [upload_image(u) for u in media_urls]
     extra_media = media_urls[1:] if len(media_urls) > 1 else []
 
     p = Post(
@@ -791,9 +825,11 @@ def update_profile():
     uid = current_uid()
     u   = User.query.get_or_404(uid)
     d   = request.get_json() or {}
-    for field in ('name', 'bio', 'avatar_url'):
+    for field in ('name', 'bio'):
         if field in d:
             setattr(u, field, d[field])
+    if 'avatar_url' in d:
+        u.avatar_url = upload_image(d['avatar_url'])
     db.session.commit()
     return jsonify(user=u.to_dict())
 
